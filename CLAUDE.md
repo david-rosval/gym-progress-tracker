@@ -11,9 +11,15 @@ pnpm start         # run production build
 pnpm lint          # ESLint
 pnpm format        # Prettier --write on all files
 pnpm format:check  # Prettier --check (used in CI)
+pnpm db:generate   # regenerate the Prisma client (run after install, and after editing schema.prisma)
+pnpm db:migrate    # create + apply a migration in development
+pnpm db:push       # push schema changes to the DB without creating a migration
+pnpm db:studio     # open Prisma Studio
 ```
 
 This project uses **pnpm** (see `pnpm-workspace.yaml`). Do not use npm or yarn.
+
+Local Postgres connection string goes in `.env.local` (gitignored) as `DATABASE_URL` — see `.env.example` for the expected shape. `pnpm db:generate` must be run once after `pnpm install` (not wired into `postinstall`, since `.env.local` isn't guaranteed to exist yet); the generated client lands in `src/generated/prisma` (gitignored) and `pnpm build` will fail its type check until it exists.
 
 ## Stack
 
@@ -24,7 +30,7 @@ This project uses **pnpm** (see `pnpm-workspace.yaml`). Do not use npm or yarn.
 - **ESLint 9** with `eslint-config-next` — flat config in `eslint.config.mjs`; `@typescript-eslint/no-explicit-any` is an error
 - **Prettier 3** — config in `prettier.config.mjs`; double quotes, semi, 2-space tabs, LF, printWidth 100
 - **Husky + lint-staged** — pre-commit hook runs `eslint --fix` then `prettier --write` on staged `*.{ts,tsx}` files
-- **Prisma** — ORM for database access
+- **Prisma** (v7+) — ORM for database access. Postgres via the `@prisma/adapter-pg` driver adapter (required in Prisma 7+, not optional); datasource config lives in `prisma.config.ts` at the project root, not in `schema.prisma`. Client singleton lives at `src/adapters/prisma/client.ts`
 - **shadcn/ui** — component library; always check for an existing shadcn component before building a custom one
 - **GSAP** — animations
 - **TanStack Query** — client-side data fetching and server state management
@@ -79,4 +85,4 @@ components/       # Shared UI components (shadcn/ui wrappers and custom presenta
 - **shadcn/ui** — always check the shadcn component registry before building a custom component.
 - **GSAP** is used for animations; keep animation logic co-located with the component or in a dedicated animation hook.
 
-Path alias: `@/` maps to the project root (e.g. `@/components/Button` → `./components/Button`).
+Path alias: `@/` maps to the project root (e.g. `@/components/Button` → `./components/Button`). Anything under `src/` needs the explicit segment — `@/src/lib/utils`, `@/src/hooks/useX`, etc. — there is no `@/lib` or `@/hooks` shorthand.
