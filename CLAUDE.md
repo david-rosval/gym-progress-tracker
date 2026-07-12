@@ -24,6 +24,12 @@ This project uses **pnpm** (see `pnpm-workspace.yaml`). Do not use npm or yarn.
 - **ESLint 9** with `eslint-config-next` — flat config in `eslint.config.mjs`; `@typescript-eslint/no-explicit-any` is an error
 - **Prettier 3** — config in `prettier.config.mjs`; double quotes, semi, 2-space tabs, LF, printWidth 100
 - **Husky + lint-staged** — pre-commit hook runs `eslint --fix` then `prettier --write` on staged `*.{ts,tsx}` files
+- **Prisma** — ORM for database access
+- **shadcn/ui** — component library; always check for an existing shadcn component before building a custom one
+- **GSAP** — animations
+- **TanStack Query** — client-side data fetching and server state management
+- **Axios** — HTTP client (used inside TanStack Query fetchers)
+- **Zod** — schema validation
 
 ## Branching
 
@@ -47,8 +53,30 @@ Core features:
 
 ## Architecture
 
-The project is an early-stage gym progress tracker built on the Next.js App Router. All routes live under `app/`. The root layout (`app/layout.tsx`) sets up the Geist font variables and a full-height flex body.
+The project follows **Clean Architecture with Hexagonal (Ports & Adapters)** principles, adapted for Next.js and client-side React. The goal is to keep business logic decoupled from frameworks, UI, and infrastructure.
+
+### Directory structure
+
+```
+app/              # Next.js App Router — pages, layouts, API routes only
+src/
+  domain/         # Core business entities and value objects (pure TypeScript, no framework deps)
+  use-cases/      # Application use cases — orchestrate domain logic, depend only on ports
+  ports/          # Interfaces (TypeScript types/interfaces) that define how use cases talk to the outside world
+  adapters/       # Concrete implementations of ports (Prisma repos, Axios API clients, etc.)
+  hooks/          # Custom React hooks — map 1-to-1 with use cases; wire TanStack Query + adapters
+  lib/            # Shared utilities, Zod schemas, constants
+components/       # Shared UI components (shadcn/ui wrappers and custom presentational components)
+```
+
+### Key conventions
+
+- **API routes** live in `app/api/` and are thin — they validate input with Zod, call a use case or adapter, and return JSON. No business logic in route handlers.
+- **TanStack Query** is the client-side data layer. Hooks in `src/hooks/` wrap `useQuery` / `useMutation` and call Axios-based adapters.
+- **Ports** are plain TypeScript interfaces. Adapters implement them. Use cases depend only on ports — never on Prisma, Axios, or any specific library directly.
+- **Domain entities** are plain TypeScript classes or types with no framework imports.
+- **Zod schemas** live in `src/lib/schemas/` and are shared between API route validation and client-side form validation.
+- **shadcn/ui** — always check the shadcn component registry before building a custom component.
+- **GSAP** is used for animations; keep animation logic co-located with the component or in a dedicated animation hook.
 
 Path alias: `@/` maps to the project root (e.g. `@/components/Button` → `./components/Button`).
-
-No database, auth, or state management has been added yet.
